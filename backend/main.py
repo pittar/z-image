@@ -28,16 +28,10 @@ async def startup_event():
         # [Optional] Attention Backend
         # Diffusers uses SDPA by default. Switch to Flash Attention for better efficiency if supported
         try:
-            # Attempt to enable Flash Attention 3 as requested
-            pipe.transformer.set_attention_backend("_flash_3")
-            print("Enabled Flash Attention 3 backend.")
+            pipe.transformer.set_attention_backend("flash") # Enable Flash-Attention-2
+            print("Enabled Flash Attention 2 backend.")
         except Exception as e:
-            print(f"Failed to set Flash Attention 3 backend, falling back to default/Flash 2: {e}")
-            try:
-                pipe.transformer.set_attention_backend("flash")
-                print("Enabled Flash Attention 2 backend.")
-            except Exception as e2:
-                print(f"Failed to set Flash Attention 2 backend: {e2}")
+            print(f"Failed to set Flash Attention 2 backend: {e}")
 
         # [Optional] Model Compilation
         # Compiling the DiT model accelerates inference, but the first run will take longer to compile.

@@ -30,7 +30,7 @@ WORKDIR /app
 RUN pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
 
 # Install build dependencies for Flash Attention
-RUN pip install packaging ninja
+RUN pip install packaging ninja psutil
 
 # Install Flash Attention
 # Using --no-build-isolation to ensure it uses the installed PyTorch

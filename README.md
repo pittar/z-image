@@ -14,7 +14,7 @@ This project consists of a React Frontend and a CUDA-accelerated Python Backend 
 ## Quick Start
 
 ### 1. Start the Backend (Docker)
-This builds a container with CUDA 12.4, Flash Attention 3 (support), and the latest Diffusers library.
+This builds a container with CUDA 12.4, Flash Attention 2, and the latest Diffusers library.
 
 ```bash
 cd backend
@@ -27,8 +27,8 @@ docker build -t z-image-turbo-backend .
 docker run --gpus all -p 8000:8000 z-image-turbo-backend
 ```
 
-**Note on Flash Attention 3**: 
-The Dockerfile installs the `flash-attn` package. The code attempts to use the `_flash_3` backend if toggled in the UI. This requires specific hardware support (e.g., NVIDIA H100 Hopper architecture). If you are running on Ampere (A100, RTX 3090) or Ada (RTX 4090), Flash Attention 2 is typically the standard. The backend handles fallback gracefully.
+**Note on Flash Attention 2**: 
+The Dockerfile installs the `flash-attn` package which provides Flash Attention 2. This requires an NVIDIA GPU with Ampere architecture (RTX 3090, A100) or newer (Ada/Hopper). If your GPU is older (e.g., Turing/Volta), the installation might fail or fallback to standard attention mechanisms.
 
 ### 2. Start the Frontend
 Open a new terminal in the project root:
