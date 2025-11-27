@@ -22,6 +22,16 @@ cd backend
 # Build the image (this may take 5-10 minutes to compile Flash Attention)
 docker build -t z-image-turbo-backend .
 
+# [Optional] Push to Docker Hub
+# 1. Login to Docker Hub
+docker login
+
+# 2. Tag the image (replace 'your-username' with your Docker Hub username)
+docker tag z-image-turbo-backend your-username/z-image-turbo-backend:latest
+
+# 3. Push the image
+docker push your-username/z-image-turbo-backend:latest
+
 # Run the container with GPU access
 # IMPORTANT: --gpus all is required for the container to see your NVIDIA card
 docker run --gpus all -p 8000:8000 z-image-turbo-backend
