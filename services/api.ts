@@ -1,6 +1,6 @@
 // This file handles communication with the Python backend
 
-const API_URL = 'http://localhost:8000';
+const API_URL = 'http://turbo:8000';
 
 export interface GenerationRequest {
   prompt: string;
