@@ -17,24 +17,38 @@ async def startup_event():
     print("Initializing Z-Image Pipeline...")
     try:
         # Load the pipeline
-        # Use bfloat16 for optimal performance on supported GPUs
+        # Use bfloat16 for optimal performance on Blackwell (RTX 50-series)
         pipe = ZImagePipeline.from_pretrained(
             "Tongyi-MAI/Z-Image-Turbo",
             torch_dtype=torch.bfloat16,
             low_cpu_mem_usage=False,
         )
-        pipe.to("cuda")
+
+        # --- CRITICAL FIX START ---
+        
+        # 1. CPU Offloading
+        # Instead of pipe.to("cuda"), we use offloading.
+        # This keeps the inactive parts of the model in your 128GB System RAM
+        # and only moves the Transformer/UNet to the GPU when actively computing.
+        # This reduces VRAM usage from ~15GB to ~4-6GB.
+        pipe.enable_model_cpu_offload()
+
+        # 2. VAE Slicing
+        # Generating 1024x1024 images creates a massive memory spike at the end
+        # when decoding latents to pixels. Slicing decodes small chunks at a time.
+        pipe.enable_vae_slicing()
+
+        # --- CRITICAL FIX END ---
 
         # [Optional] Attention Backend
-        # Diffusers uses SDPA by default. Switch to Flash Attention for better efficiency if supported
-        try:
-            pipe.transformer.set_attention_backend("flash") # Enable Flash-Attention-2
-            print("Enabled Flash Attention 2 backend.")
-        except Exception as e:
-            print(f"Failed to set Flash Attention 2 backend: {e}")
+        # Since you built without Flash Attention installed, we should skip forcing it.
+        # PyTorch 2.0+ automatically uses "Scaled Dot Product Attention" (SDPA),
+        # which is built-in and highly optimized for your hardware.
+        print("Using default PyTorch SDPA (Scaled Dot Product Attention) backend.")
 
         # [Optional] Model Compilation
-        # Compiling the DiT model accelerates inference, but the first run will take longer to compile.
+        # Compiling can help speed, but on 16GB cards, compiling can sometimes
+        # induce extra memory overhead. We'll leave it commented out for stability.
         # pipe.transformer.compile()
         
         print("Pipeline loaded successfully.")
@@ -58,6 +72,8 @@ async def generate_image(req: GenerateRequest):
         raise HTTPException(status_code=503, detail="Model is not loaded or failed to load.")
 
     try:
+        # Note: When using cpu_offload, standard generators are often safer,
+        # but creating a CUDA generator is generally supported.
         generator = torch.Generator("cuda").manual_seed(req.seed)
         
         # Generate Image
@@ -81,6 +97,9 @@ async def generate_image(req: GenerateRequest):
         
     except Exception as e:
         print(f"Error during generation: {e}")
+        # Check for OOM specifically to give better feedback
+        if "out of memory" in str(e).lower():
+            raise HTTPException(status_code=500, detail="GPU Out of Memory. Try reducing image size.")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/health")
