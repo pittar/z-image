@@ -3,6 +3,7 @@ FROM nvidia/cuda:12.8.0-devel-ubuntu22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
+ENV TORCH_CUDA_ARCH_LIST="12.0"
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
