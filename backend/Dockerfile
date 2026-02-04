@@ -33,7 +33,7 @@ RUN pip install --pre torch torchvision torchaudio --index-url https://download.
 
 # 3. INSTALL FLASH ATTENTION
 # Because the base image is now CUDA 12.8, this will compile correctly for sm_120
-RUN MAX_JOBS=4 pip install "flash-attn>=2.6.3" --no-build-isolation
+RUN MAX_JOBS=1 pip install "flash-attn>=2.6.3" --no-build-isolation
 
 # Install Diffusers from source
 RUN pip install git+https://github.com/huggingface/diffusers.git
