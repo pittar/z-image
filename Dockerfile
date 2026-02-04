@@ -9,13 +9,13 @@ USER 0
 WORKDIR /opt/app-root/src
 
 # 1. Copy package files first to leverage Docker caching
-COPY package.json package-lock.json ./
+COPY package.json ./
 
 # 2. Install Dependencies
 # We use 'npm ci' (Clean Install). It respects the lockfile.
 # Importantly, we do NOT set NODE_ENV=production here, 
 # so 'devDependencies' (like Vite) are installed.
-RUN npm ci
+RUN npm install
 
 # 3. Copy the rest of the source code
 COPY . .
