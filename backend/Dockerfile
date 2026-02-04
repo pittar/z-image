@@ -1,4 +1,5 @@
-FROM nvidia/cuda:12.4.1-devel-ubuntu22.04
+# 1. UPDATE BASE IMAGE: Must use CUDA 12.8 Devel for RTX 50-series (Blackwell) compilation
+FROM nvidia/cuda:12.8.0-devel-ubuntu22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
@@ -26,26 +27,25 @@ RUN ln -sf /usr/bin/python3.11 /usr/bin/python && \
 
 WORKDIR /app
 
-# Install PyTorch and build dependencies
-RUN pip install packaging ninja "torch==2.7.1" "torchvision==0.22.1" "torchaudio==2.7.1" --extra-index-url https://download.pytorch.org/whl/cu124
+# 2. INSTALL PYTORCH NIGHTLY: Explicitly target CUDA 12.8 (cu128)
+# We install this BEFORE requirements.txt to ensure the GPU version is prioritized
+RUN pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu128
 
-# Install Flash Attention
-# Using --no-build-isolation to ensure it uses the installed PyTorch
-# MAX_JOBS=4 prevents running out of memory during compilation
+# 3. INSTALL FLASH ATTENTION
+# Because the base image is now CUDA 12.8, this will compile correctly for sm_120
 RUN MAX_JOBS=4 pip install "flash-attn>=2.6.3" --no-build-isolation
 
-# Install Diffusers from source (latest)
+# Install Diffusers from source
 RUN pip install git+https://github.com/huggingface/diffusers.git
 
-# Install other dependencies
+# 4. INSTALL REMAINING DEPENDENCIES
+# Important: Remove 'torch', 'torchvision', 'torchaudio' from your requirements.txt
+# so this step doesn't downgrade what we just installed.
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
-# Copy application code
 COPY . .
 
-# Expose port
 EXPOSE 8000
 
-# Command to run the API
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
