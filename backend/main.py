@@ -17,44 +17,30 @@ async def startup_event():
     print("Initializing Z-Image Pipeline...")
     try:
         # Load the pipeline
-        # Use bfloat16 for optimal performance on Blackwell (RTX 50-series)
         pipe = ZImagePipeline.from_pretrained(
             "Tongyi-MAI/Z-Image-Turbo",
             torch_dtype=torch.bfloat16,
             low_cpu_mem_usage=False,
         )
 
-        # --- CRITICAL FIX START ---
-        
-        # 1. CPU Offloading
-        # Instead of pipe.to("cuda"), we use offloading.
-        # This keeps the inactive parts of the model in your 128GB System RAM
-        # and only moves the Transformer/UNet to the GPU when actively computing.
-        # This reduces VRAM usage from ~15GB to ~4-6GB.
-        pipe.enable_model_cpu_offload()
+        # 1. CPU Offloading (Critical for 16GB VRAM)
+        # Keeps weights in system RAM, moves to GPU only when needed.
+        # If this method also fails, replace it with: pipe.to("cuda") and reduce image size.
+        if hasattr(pipe, "enable_model_cpu_offload"):
+            pipe.enable_model_cpu_offload()
+        else:
+            print("Warning: Pipeline does not support CPU offloading. VRAM usage may be high.")
+            pipe.to("cuda")
 
-        # 2. VAE Slicing
-        # Generating 1024x1024 images creates a massive memory spike at the end
-        # when decoding latents to pixels. Slicing decodes small chunks at a time.
-        pipe.enable_vae_slicing()
-
-        # --- CRITICAL FIX END ---
-
-        # [Optional] Attention Backend
-        # Since you built without Flash Attention installed, we should skip forcing it.
-        # PyTorch 2.0+ automatically uses "Scaled Dot Product Attention" (SDPA),
-        # which is built-in and highly optimized for your hardware.
-        print("Using default PyTorch SDPA (Scaled Dot Product Attention) backend.")
-
-        # [Optional] Model Compilation
-        # Compiling can help speed, but on 16GB cards, compiling can sometimes
-        # induce extra memory overhead. We'll leave it commented out for stability.
-        # pipe.transformer.compile()
+        # 2. VAE Slicing (The Fix)
+        # We call it on the .vae component directly
+        if hasattr(pipe, "vae") and hasattr(pipe.vae, "enable_slicing"):
+            pipe.vae.enable_slicing()
+            print("VAE slicing enabled.")
         
         print("Pipeline loaded successfully.")
     except Exception as e:
         print(f"Error loading pipeline: {e}")
-        # We don't raise here to allow the app to start, but requests will fail
         pass
 
 class GenerateRequest(BaseModel):
