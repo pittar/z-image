@@ -1,50 +1,50 @@
-# 1. BASE IMAGE: NVIDIA CUDA 12.8 Devel on Red Hat UBI 9
-FROM nvcr.io/nvidia/cuda:12.8.0-devel-ubi9
+# 1. UPDATE BASE IMAGE: Must use CUDA 12.8 Devel for RTX 50-series (Blackwell) compilation
+FROM nvidia/cuda:12.8.0-devel-ubuntu22.04
 
+ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV TORCH_CUDA_ARCH_LIST="12.0"
 
-# 2. SYSTEM DEPENDENCIES
-RUN dnf -y update && \
-    dnf -y install \
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    software-properties-common \
     git \
-    gcc-c++ \
+    ninja-build \
+    curl \
+    ca-certificates \
+    && add-apt-repository ppa:deadsnakes/ppa \
+    && apt-get update && apt-get install -y \
     python3.11 \
-    python3.11-devel \
-    python3.11-pip \
-    && dnf clean all
+    python3.11-dev \
+    python3.11-distutils \
+    && rm -rf /var/lib/apt/lists/*
 
-# 3. SET PYTHON 3.11 DEFAULT
-RUN alternatives --set python3 /usr/bin/python3.11 && \
-    ln -sf /usr/bin/python3.11 /usr/bin/python
+# Install pip for Python 3.11
+RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3.11
+
+# Set python3.11 as default python
+RUN ln -sf /usr/bin/python3.11 /usr/bin/python && \
+    ln -sf /usr/bin/python3.11 /usr/bin/python3
 
 WORKDIR /app
 
-# 4. UPGRADE PIP
-RUN python3 -m pip install --upgrade pip setuptools wheel packaging ninja
-
-# 5. INSTALL PYTORCH NIGHTLY (CUDA 12.8)
+# 2. INSTALL PYTORCH NIGHTLY: Explicitly target CUDA 12.8 (cu128)
+# We install this BEFORE requirements.txt to ensure the GPU version is prioritized
 RUN pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu128
 
-# 6. INSTALL FLASH ATTENTION (THE FIX IS HERE)
-# MAX_JOBS=1: Prevents memory spikes/thrashing
-# -v: Streams output so you know it hasn't hung
-RUN MAX_JOBS=1 pip install -v "flash-attn>=2.6.3" --no-build-isolation
+# 3. INSTALL FLASH ATTENTION
+# Because the base image is now CUDA 12.8, this will compile correctly for sm_120
+RUN MAX_JOBS=4 pip install "flash-attn>=2.6.3" --no-build-isolation
 
-# 7. INSTALL DIFFUSERS
+# Install Diffusers from source
 RUN pip install git+https://github.com/huggingface/diffusers.git
 
-# 8. REST OF DEPENDENCIES
-# Remember to remove 'torch' from requirements.txt!
+# 4. INSTALL REMAINING DEPENDENCIES
+# Important: Remove 'torch', 'torchvision', 'torchaudio' from your requirements.txt
+# so this step doesn't downgrade what we just installed.
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
 COPY . .
-
-# OpenShift Permissions Fix
-RUN chgrp -R 0 /app && \
-    chmod -R g=u /app
 
 EXPOSE 8000
 
