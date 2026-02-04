@@ -1,6 +1,6 @@
 // This file handles communication with the Python backend
 
-const API_URL = 'http://turbo:8000';
+const API_URL = 'https://turbo-turbo.apps.prime.pitt.ca';
 
 export interface GenerationRequest {
   prompt: string;
