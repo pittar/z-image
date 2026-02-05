@@ -1,5 +1,6 @@
 import torch
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware # <--- IMPORT THIS
 from pydantic import BaseModel
 from diffusers import ZImagePipeline
 from io import BytesIO
@@ -7,6 +8,16 @@ from fastapi.responses import Response
 import os
 
 app = FastAPI(title="Z-Image Generation API")
+
+# --- ADD THIS BLOCK IMMEDIATELY AFTER CREATING 'app' ---
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows ALL domains (easiest for testing)
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods (GET, POST, etc.)
+    allow_headers=["*"],  # Allows all headers
+)
+# -------------------------------------------------------
 
 # Global variable for the pipeline
 pipe = None
