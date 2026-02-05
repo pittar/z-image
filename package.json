@@ -9,9 +9,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "react-dom": "^19.2.0",
-    "react": "^19.2.0",
-    "lucide-react": "^0.555.0"
+    "react": "^18.3.1",        // Change from 19.x
+    "react-dom": "^18.3.1",    // Change from 19.x
+    "lucide-react": "^0.300.0" // Use a standard stable version
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
