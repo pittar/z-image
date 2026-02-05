@@ -40,7 +40,24 @@
 
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-300 mb-1">Steps</label>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Width</label>
+                    <select id="widthInput" class="w-full bg-gray-900 border border-gray-600 rounded-lg p-2 text-white">
+                        <option value="512" selected>512 px</option>
+                        <option value="768">768 px</option>
+                        <option value="1024">1024 px</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Height</label>
+                    <select id="heightInput" class="w-full bg-gray-900 border border-gray-600 rounded-lg p-2 text-white">
+                        <option value="512" selected>512 px</option>
+                        <option value="768">768 px</option>
+                        <option value="1024">1024 px</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Steps (1-20)</label>
                     <input type="number" id="stepsInput" value="4" min="1" max="20"
                         class="w-full bg-gray-900 border border-gray-600 rounded-lg p-2 text-white">
                 </div>
@@ -76,8 +93,7 @@
 
     <script>
         // --- CONFIGURATION ---
-        // REPLACE THIS URL with your actual backend route!
-        // Example: "https://z-image-api-turbo.apps.prime.pitt.ca"
+        // Replace with your actual backend route!
         const API_URL = "https://turbo-turbo.apps.prime.pitt.ca"; 
         // ---------------------
 
@@ -85,6 +101,10 @@
             const prompt = document.getElementById('promptInput').value;
             const steps = parseInt(document.getElementById('stepsInput').value);
             const seed = parseInt(document.getElementById('seedInput').value);
+            
+            // New Inputs
+            const width = parseInt(document.getElementById('widthInput').value);
+            const height = parseInt(document.getElementById('heightInput').value);
             
             const btn = document.getElementById('genBtn');
             const loading = document.getElementById('loading');
@@ -106,8 +126,8 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         prompt: prompt,
-                        height: 512, // Keeping it safe for your VRAM
-                        width: 512,
+                        height: height,
+                        width: width,
                         num_inference_steps: steps,
                         seed: seed
                     })
@@ -118,7 +138,6 @@
                     throw new Error(`Server Error: ${errText}`);
                 }
 
-                // Convert blob to image URL
                 const blob = await response.blob();
                 const imageUrl = URL.createObjectURL(blob);
 
